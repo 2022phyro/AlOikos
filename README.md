@@ -20,7 +20,7 @@
 ## 🧱 Core Modules Breakdown
 
 ### 1. Authentication & User Management
-- [ ] Signup/Login with email or OAuth
+- [x] Signup/Login with email or OAuth
 - [ ] Email/phone verification
 - [ ] Role-based permissions (Admin, House Leader, Judge, Speaker, Guest)
 
