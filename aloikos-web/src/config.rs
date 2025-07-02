@@ -3,6 +3,7 @@ use dotenv::dotenv;
 use lazy_static::lazy_static;
 
 pub struct Config {
+    // JWT configuration
     pub jwt_secret: String,
     pub jwt_signing_key: String,
     pub jwt_verifying_key: String,
@@ -11,6 +12,16 @@ pub struct Config {
     pub jwt_refresh_duration: i64,
     pub jwt_issuer: String,
     pub redis_url: String,
+
+    // OTP configuration
+    pub otp_expiry: String,
+    pub otp_digit_length: usize,
+    pub otp_skew: u8,
+    pub otp_issuer: String,
+
+    // Server configuration
+    pub server_id: usize,
+    pub datacenter_id: usize,
 }
 
 impl Config {
@@ -33,6 +44,26 @@ impl Config {
                 .expect("Must be a valid number"),
             jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "Aloikos".to_string()),
             redis_url: env::var("REDIS_URL").expect("Set Redis url"),
+            
+
+            otp_expiry: env::var("OTP_EXPIRY").unwrap_or_else(|_| "30".to_string()),
+            otp_digit_length: env::var("OTP_DIGIT_LENGTH")
+                .unwrap_or_else(|_| "6".to_string())
+                .parse()
+                .expect("OTP_DIGIT_LENGTH must be a valid usize"),
+            otp_skew: env::var("OTP_SKEW")
+                .unwrap_or_else(|_| "1".to_string())
+                .parse()
+                .expect("OTP_SKEW must be a valid u64"),
+            otp_issuer: env::var("OTP_ACCOUNT_NAME").unwrap_or_else(|_| "Aloikos".to_string()),
+            server_id: env::var("SERVER_ID")
+                .unwrap_or_else(|_| "1".to_string())
+                .parse()
+                .expect("SERVER_ID must be a valid usize"),
+            datacenter_id: env::var("DATACENTER_ID")
+                .unwrap_or_else(|_| "1".to_string())
+                .parse()
+                .expect("DATACENTER_ID must be a valid usize"),
         }
     }
 }
