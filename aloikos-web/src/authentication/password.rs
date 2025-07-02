@@ -5,16 +5,18 @@ use argon2::{
     },
     Argon2
 };
-
-use crate::authentication::password;
-pub fn hash_password(password: &str) -> String {
+use super::errors::{PasswordError};
+pub fn hash_password(password: &str) -> Result<String, PasswordError> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    let password_hash = argon2.hash_password(password, &salt)?.to_string();
-    password_hash
-
+    let password_hash = argon2.hash_password(password.as_bytes(), &salt)?.to_string();
+    Ok(password_hash)
 }
-pub fn verify_password(password: &str, password_hash: String) -> bool {
-    let parsed_hash = PasswordHash::new(&password_hash)?;
-    assert!(Argon2::default().verify_password(password, &parsed_hash).is_ok());
+pub fn verify_password(password: &str, password_hash: &str) -> Result<bool, PasswordError> {
+    let parsed_hash = PasswordHash::new(password_hash)?; // This can return PasswordHashError
+    let argon2 = Argon2::default();
+    match argon2.verify_password(password.as_bytes(), &parsed_hash) {
+        Ok(_) => Ok(true),
+        Err(e) =>Err(PasswordError::VerificationFailed(e.to_string()))
+    }
 }
