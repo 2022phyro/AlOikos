@@ -21,7 +21,12 @@ pub struct Config {
 
     // Server configuration
     pub server_id: usize,
-    pub datacenter_id: usize,
+    pub server_datacenter_id: usize,
+    pub server_env: String,
+
+    //DB
+    pub db_uri: String,
+    pub db_name: String,
 }
 
 impl Config {
@@ -60,10 +65,14 @@ impl Config {
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()
                 .expect("SERVER_ID must be a valid usize"),
-            datacenter_id: env::var("DATACENTER_ID")
+            server_datacenter_id: env::var("SERVER_DATACENTER_ID")
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()
                 .expect("DATACENTER_ID must be a valid usize"),
+            server_env: env::var("SERVER_ENV").expect("Set server environment"),
+            db_uri: env::var("DATABASE_URL").expect("Set db url"),
+            db_name: env::var("DB_NAME").expect("Set db name"),
+
         }
     }
 }
