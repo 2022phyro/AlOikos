@@ -1,4 +1,5 @@
-use aloikos_web::authentication::jwt::{Blacklist, JwtAccessToken, JwtRefreshToken, Token};
+use aloikos_web::auth::dto::UserCreateDto;
+use aloikos_web::auth::services::user::create;
 use aloikos_web::config::CONFIG;
 use aloikos_web::db::connect_db;
 
@@ -23,6 +24,17 @@ async fn main() {
             eprintln!("   3. For PostgreSQL/MySQL: Check server is running");
             return;
         }
+    }
+    let user_data = UserCreateDto {
+        email: "annabelle@gmail.com".to_string(),
+        user_name: "Annie103".to_string(),
+        first_name: "Annabelle".to_string(),
+        last_name: "Figgs".to_string(),
+        password: "afam".to_string()
+    };
+    match create(user_data).await {
+        Ok(user) => println!("User created {:?} ", user),
+        Err(error) => println!("Something went wrong {:?}", error)
     }
 
     println!("\n🎉 Application started successfully!");

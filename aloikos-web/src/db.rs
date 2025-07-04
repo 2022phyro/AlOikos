@@ -10,6 +10,6 @@ pub async fn connect_db() -> Result<(), DbErr> {
     Ok(())
 }
 
-pub fn load_db() -> &'static DatabaseConnection {
+pub fn db() -> &'static DatabaseConnection {
     DB.get().expect("Database not initialized. Call connect_db() first.")
 }

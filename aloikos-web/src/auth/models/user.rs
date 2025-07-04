@@ -1,5 +1,4 @@
-use chrono::Utc;
-use sea_orm::{entity::prelude::*, ActiveValue::Set};
+use sea_orm::entity::prelude::*;
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(1))")]
 pub enum UserStatus {
