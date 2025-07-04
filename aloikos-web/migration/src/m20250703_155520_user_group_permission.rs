@@ -21,13 +21,13 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Group::Description).string().not_null())
                     .col(
                         ColumnDef::new(Group::CreatedAt)
-                            .timestamp()
+                            .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
                     .col(
                         ColumnDef::new(Group::UpdatedAt)
-                            .timestamp()
+                            .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
@@ -47,7 +47,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(Permission::CreatedAt)
-                            .timestamp()
+                            .timestamp_with_time_zone()
                             .not_null()
                             .default(Expr::current_timestamp()),
                     )
@@ -62,13 +62,13 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(User::Id).big_integer().not_null().primary_key())
             .col(
                 ColumnDef::new(User::CreatedAt)
-                    .timestamp()
+                    .timestamp_with_time_zone()
                     .not_null()
                     .default(Expr::current_timestamp()),
             )
             .col(
                 ColumnDef::new(User::UpdatedAt)
-                    .timestamp()
+                    .timestamp_with_time_zone()
                     .not_null()
                     .default(Expr::current_timestamp()),
             )
@@ -76,9 +76,9 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(User::FirstName).string().not_null())
             .col(ColumnDef::new(User::LastName).string().not_null())
             .col(ColumnDef::new(User::UserName).string().not_null().unique_key())
-            .col(ColumnDef::new(User::DateOfBirth).timestamp().null())
-            .col(ColumnDef::new(User::AuthChange).timestamp().null())
-            .col(ColumnDef::new(User::Status).string().not_null())
+            .col(ColumnDef::new(User::DateOfBirth).timestamp_with_time_zone().null())
+            .col(ColumnDef::new(User::AuthChange).timestamp_with_time_zone().null())
+            .col(string(User::Status).not_null().default("unverified"))
             .col(ColumnDef::new(User::Password).string().not_null())
             .to_owned()
         ).await?;

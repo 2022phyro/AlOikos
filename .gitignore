@@ -1,2 +1,4 @@
 constants.rs
 target/
+.env
+aloikos.db

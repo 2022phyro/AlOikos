@@ -1,16 +1,16 @@
-use aloikos_web::authentication::jwt::{JwtAccessToken, JwtRefreshToken, Token, Blacklist};
+use aloikos_web::authentication::jwt::{Blacklist, JwtAccessToken, JwtRefreshToken, Token};
 use aloikos_web::config::CONFIG;
-use aloikos_web::db::{connect_db};
+use aloikos_web::db::connect_db;
 
 #[tokio::main]
 async fn main() {
     println!("🚀 Starting Aloikos Web Application");
-    
+
     // Display configuration
     println!("\n⚙️  Database Configuration:");
     println!("   DB URI: {}", CONFIG.db_uri);
     println!("   DB Name: {}", CONFIG.db_name);
-    
+
     // Test database connection
     println!("\n🔗 Testing database connection...");
     match connect_db().await {
@@ -24,6 +24,6 @@ async fn main() {
             return;
         }
     }
-    
+
     println!("\n🎉 Application started successfully!");
 }

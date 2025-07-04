@@ -1,4 +1,4 @@
-* [ ] Set up JWT authentication
+* [x] Set up JWT authentication
 * [ ] Set up OTP System
 * [ ] Set up basic crud for users
 * [ ] Retrieve all users and manage user info
