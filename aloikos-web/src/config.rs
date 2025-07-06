@@ -18,7 +18,7 @@ pub struct Config {
     pub otp_digit_length: usize,
     pub otp_skew: u8,
     pub otp_issuer: String,
-
+    pub otp_encryption_key: String,
     // Server configuration
     pub server_id: usize,
     pub server_datacenter_id: usize,
@@ -61,6 +61,7 @@ impl Config {
                 .parse()
                 .expect("OTP_SKEW must be a valid u64"),
             otp_issuer: env::var("OTP_ACCOUNT_NAME").unwrap_or_else(|_| "Aloikos".to_string()),
+            otp_encryption_key: env::var("OTP_ENCRYPTION_KEY").unwrap_or_else(|_| "Aloikos".to_string()),
             server_id: env::var("SERVER_ID")
                 .unwrap_or_else(|_| "1".to_string())
                 .parse()

@@ -31,6 +31,7 @@ pub struct Model {
     pub auth_change: Option<DateTimeUtc>,
     pub status: UserStatus,
     pub password: String,
+    pub otp_secret: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

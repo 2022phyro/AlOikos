@@ -9,6 +9,7 @@ pub struct Model {
     pub description: String,
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
+    pub is_admin_group: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -17,8 +17,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Group::IsAdminGroup).boolean().default(false).not_null())
                     .col(ColumnDef::new(Group::Name).string().not_null())
-                    .col(ColumnDef::new(Group::Description).string().not_null())
+                    .col(ColumnDef::new(Group::Description).text().not_null())
                     .col(
                         ColumnDef::new(Group::CreatedAt)
                             .timestamp_with_time_zone()
@@ -32,6 +33,7 @@ impl MigrationTrait for Migration {
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
+
             )
             .await?;
         manager
@@ -75,6 +77,7 @@ impl MigrationTrait for Migration {
             .col(ColumnDef::new(User::Email).string().not_null().unique_key())
             .col(ColumnDef::new(User::FirstName).string().not_null())
             .col(ColumnDef::new(User::LastName).string().not_null())
+            .col(ColumnDef::new(User::OtpSecret).string().not_null())
             .col(ColumnDef::new(User::UserName).string().not_null().unique_key())
             .col(ColumnDef::new(User::DateOfBirth).timestamp_with_time_zone().null())
             .col(ColumnDef::new(User::AuthChange).timestamp_with_time_zone().null())
@@ -200,6 +203,7 @@ enum Group {
     Id,
     Name,
     Description,
+    IsAdminGroup,
     CreatedAt,
     UpdatedAt,
 }
@@ -218,6 +222,7 @@ enum User {
     Password,
     CreatedAt,
     UpdatedAt,
+    OtpSecret
 }
 
 #[derive(Iden)]
