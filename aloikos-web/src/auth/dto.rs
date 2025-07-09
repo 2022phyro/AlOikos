@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use chrono::{Date, DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
@@ -26,4 +26,13 @@ pub struct GroupUpdateDto {
     pub name: Option<String>,
     pub description: Option<String>,
     pub is_admin_group: Option<bool>
+}
+#[derive(Debug, Deserialize, Serialize)]
+
+pub struct LoginResultDto {
+    pub access: String,
+    pub refresh: String,
+    pub access_expiry: DateTime<Utc>,
+    pub refresh_expiry: DateTime<Utc>,
+    pub user_id: String
 }

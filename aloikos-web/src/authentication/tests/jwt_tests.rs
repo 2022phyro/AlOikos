@@ -1,9 +1,11 @@
+use chrono::Utc;
 use crate::authentication::jwt::{JwtAccessToken, JwtRefreshToken, Token, Blacklist};
 
 #[tokio::test]
 async fn test_token_creation() {
-    let access = JwtAccessToken::new("user_a".into());
-    let refresh = JwtRefreshToken::new("user_a".into());
+    let auth_change = Utc::now();
+    let access = JwtAccessToken::new("user_a".into(), auth_change);
+    let refresh = JwtRefreshToken::new("user_a".into(), auth_change);
 
     assert!(access.verify().is_ok());
     assert!(refresh.verify().is_ok());
@@ -11,8 +13,9 @@ async fn test_token_creation() {
 
 #[tokio::test]
 async fn test_token_jti_extraction() {
-    let access = JwtAccessToken::new("user_b".into());
-    let refresh = JwtRefreshToken::new("user_b".into());
+    let auth_change = Utc::now();
+    let access = JwtAccessToken::new("user_b".into(), auth_change);
+    let refresh = JwtRefreshToken::new("user_b".into(), auth_change);
 
     assert!(access.jti().is_some());
     assert!(refresh.jti().is_some());
@@ -20,8 +23,9 @@ async fn test_token_jti_extraction() {
 
 #[tokio::test]
 async fn test_token_blacklist_roundtrip() {
-    let access = JwtAccessToken::new("user_c".into());
-    let refresh = JwtRefreshToken::new("user_c".into());
+    let auth_change = Utc::now();
+    let access = JwtAccessToken::new("user_c".into(), auth_change);
+    let refresh = JwtRefreshToken::new("user_c".into(), auth_change);
 
     let jti_a = access.jti().unwrap();
     let jti_r = refresh.jti().unwrap();
@@ -38,8 +42,9 @@ async fn test_token_blacklist_roundtrip() {
 
 #[tokio::test]
 async fn test_token_full_verify_before_and_after_blacklist() {
-    let access = JwtAccessToken::new("user_d".into());
-    let refresh = JwtRefreshToken::new("user_d".into());
+    let auth_change = Utc::now();
+    let access = JwtAccessToken::new("user_d".into(), auth_change);
+    let refresh = JwtRefreshToken::new("user_d".into(), auth_change);
 
     assert!(access.full_verify().await.is_ok());
     assert!(refresh.full_verify().await.is_ok());
@@ -53,7 +58,8 @@ async fn test_token_full_verify_before_and_after_blacklist() {
 
 #[tokio::test]
 async fn test_token_import_and_verification() {
-    let original = JwtAccessToken::new("user_e".into());
+    let auth_change = Utc::now();
+    let original = JwtAccessToken::new("user_e".into(), auth_change);
     let token_string = original.token.clone();
     let imported = JwtAccessToken::from_token(token_string);
 

@@ -4,9 +4,10 @@ use jsonwebtoken::{
     Validation,
 };
 use redis::AsyncCommands;
+use sea_orm::prelude::DateTimeUtc;
 use std::{str::FromStr, vec};
 use serde::{Deserialize, Serialize};
-use crate::config::CONFIG;
+use crate::{auth, config::CONFIG};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwtAccessToken {
@@ -22,11 +23,12 @@ pub struct Claims {
     pub exp: usize,
     pub token_type: String,
     pub jti: String,
+    pub auth_change: DateTimeUtc,
 }
 
 pub trait Token {
     fn from_token(token: String) -> Self;
-    fn new(user_id: String) -> Self;
+    fn new(user_id: String, auth_change: DateTimeUtc) -> Self;
     fn verify(&self) -> Result<TokenData<Claims>, String>;
     fn signing_key() -> EncodingKey {
         EncodingKey::from_secret(CONFIG.jwt_signing_key.as_bytes())
@@ -60,7 +62,7 @@ impl Token for JwtAccessToken {
     fn from_token(token: String) -> Self {
         JwtAccessToken { token }
     }
-    fn new(user_id: String) -> Self {
+    fn new(user_id: String, auth_change: DateTimeUtc) -> Self {
         // Here you would typically generate a JWT token based on user_id and token_type
         let default_algorithm = Algorithm::from_str(&CONFIG.jwt_algorithm).unwrap();
         let jti = uuid::Uuid::new_v4().to_string();
@@ -69,6 +71,7 @@ impl Token for JwtAccessToken {
             sub: user_id.clone(),
             exp: (Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64)).timestamp() as usize,
             token_type: "access".to_string(),
+            auth_change:auth_change,
             jti,
         };
         let token = encode(&headers, &claims, &Self::signing_key()).expect("Failed to encode JWT");
@@ -88,7 +91,7 @@ impl Token for JwtRefreshToken {
     fn from_token(token: String) -> Self {
         JwtRefreshToken { token }
     }
-    fn new(user_id: String) -> Self {
+    fn new(user_id: String, auth_change: DateTimeUtc) -> Self {
         // Here you would typically generate a JWT token based on user_id and token_type
         let default_algorithm = Algorithm::from_str(&CONFIG.jwt_algorithm).unwrap();
         let headers = Header::new(default_algorithm);
@@ -97,6 +100,7 @@ impl Token for JwtRefreshToken {
             sub: user_id.clone(),
             exp: (Utc::now() + Duration::seconds(CONFIG.jwt_refresh_duration)).timestamp() as usize,
             token_type: "refresh".to_string(),
+            auth_change,
             jti,
         };
         let token = encode(&headers, &claims, &Self::signing_key()).expect("Failed to encode JWT");

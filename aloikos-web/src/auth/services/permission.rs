@@ -15,7 +15,7 @@ pub async fn create(name:String, code:i32) -> Result<PermissionModel, DbErr> {
 }
 
 pub async fn get(permission_id: i64) ->  Result<PermissionModel, DbErr> {
-    let permission = Permission::find_by_id(group_id)
+    let permission = Permission::find_by_id(permission_id)
     .one(db())
     .await?;
     match permission {
@@ -23,7 +23,7 @@ pub async fn get(permission_id: i64) ->  Result<PermissionModel, DbErr> {
         None => Err(DbErr::RecordNotFound("Permission not found".to_owned()))
     }
 }  
-}
+
 pub async fn delete(permission_id: i64) -> DeleteResult {
     let res: DeleteResult = Permission::delete_by_id(permission_id)
         .exec(db())
