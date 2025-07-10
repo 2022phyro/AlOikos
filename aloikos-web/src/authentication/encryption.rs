@@ -36,7 +36,7 @@ fn derive_key() -> Result<Key, EncryptionError> {
     }
     
     // Hash the key material to get exactly 32 bytes
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha256::default();
     hasher.update(key_material);
     let hashed = hasher.finalize();
     

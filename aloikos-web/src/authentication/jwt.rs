@@ -7,7 +7,7 @@ use redis::AsyncCommands;
 use sea_orm::prelude::DateTimeUtc;
 use std::{str::FromStr, vec};
 use serde::{Deserialize, Serialize};
-use crate::{auth, config::CONFIG};
+use crate::{config::CONFIG};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwtAccessToken {

@@ -2,7 +2,7 @@ use crate::{
     auth::dto::LoginResultDto,
     authentication::{
         jwt::{Claims, JwtAccessToken, JwtRefreshToken, Token},
-        password::{self, verify_password},
+        password::verify_password,
     },
     config::CONFIG,
     db::db,
