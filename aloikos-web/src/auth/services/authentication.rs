@@ -19,7 +19,7 @@ pub enum TokenType {
 // struct
 pub async fn login(email: &str, password: String) -> Result<LoginResultDto, DbErr> {
     let user = User::find()
-        .filter(UserColumn::Email.contains(email))
+        .filter(UserColumn::Email.eq(email))
         .one(db())
         .await?;
     
