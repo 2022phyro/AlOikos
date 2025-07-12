@@ -4,12 +4,13 @@ pub mod models;
 pub mod dto;
 pub mod services;
 pub mod handlers;
-
+pub mod middleware;
+pub mod extractors;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::auth::handlers::auth::login,
-        crate::auth::handlers::auth::signup,
+        crate::auth::handlers::auth::login_view,
+        crate::auth::handlers::auth::signup_view,
     ),
     components(
         schemas(

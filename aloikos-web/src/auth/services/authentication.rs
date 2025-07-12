@@ -16,7 +16,6 @@ pub enum TokenType {
     Access(String),
     Refresh(String),
 }
-// struct
 pub async fn login(email: &str, password: String) -> Result<LoginResultDto, DbErr> {
     let user = User::find()
         .filter(UserColumn::Email.eq(email))
@@ -44,12 +43,8 @@ pub async fn login(email: &str, password: String) -> Result<LoginResultDto, DbEr
     })
 }
 
-pub async fn refresh(token: String, is_access: bool) -> Result<LoginResultDto, DbErr> {
-    let typed_token = if is_access {
-        TokenType::Access(token)
-    } else {
-        TokenType::Refresh(token)
-    };
+pub async fn refresh(token: String) -> Result<LoginResultDto, DbErr> {
+    let typed_token = TokenType::Refresh(token);
     let claims = verify_token(typed_token).await;
     match claims {
         Ok(claims) => {

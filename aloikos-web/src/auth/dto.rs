@@ -48,3 +48,8 @@ pub struct LoginResponse {
     pub access_expiry: chrono::DateTime<chrono::Utc>,
     pub user_id: String,
 }
+
+#[derive(Deserialize, ToSchema)]
+pub struct LogoutDto {
+    pub all: bool
+}

@@ -1,11 +1,18 @@
 //login
-use crate::auth::{
-    dto::{LoginRequestDto, UserCreateDto, LoginResponse},
-    services::{authentication, user},
-};
-use utoipa;
+use crate::auth::models::prelude::UserActiveModel;
+use crate::authentication::jwt::JwtRefreshToken;
 use crate::config::CONFIG;
-use axum::response::{IntoResponse};
+use crate::{
+    auth::{
+        dto::{LoginRequestDto, LoginResponse, LogoutDto, UserCreateDto},
+        extractors::AuthContext,
+        services,
+    },
+    authentication::jwt::{Blacklist, JwtAccessToken, Token},
+    db::db,
+    utils::errors::ApiError,
+};
+use axum::response::IntoResponse;
 use axum::{
     http::{
         header::{HeaderMap, SET_COOKIE},
@@ -13,6 +20,11 @@ use axum::{
     },
     response::Json,
 };
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use serde_json::json;
+use tower_cookies::Cookies;
+use utoipa;
 
 /// Handles user login by validating credentials and issuing an access token.
 ///
@@ -38,8 +50,10 @@ use axum::{
     tag = "auth"
 )]
 
-pub async fn login(Json(login_request_dto): Json<LoginRequestDto>) -> impl IntoResponse {
-    match authentication::login(&login_request_dto.email, login_request_dto.password).await {
+pub async fn login_view(Json(login_request_dto): Json<LoginRequestDto>) -> impl IntoResponse {
+    match services::authentication::login(&login_request_dto.email, login_request_dto.password)
+        .await
+    {
         Ok(login_result) => {
             // Create HTTP-only cookie for refresh token
             let cookie_value = format!(
@@ -82,7 +96,6 @@ pub async fn login(Json(login_request_dto): Json<LoginRequestDto>) -> impl IntoR
     }
 }
 
-
 /// Signs up a new user with the relevant details
 #[utoipa::path(
     post,
@@ -94,8 +107,8 @@ pub async fn login(Json(login_request_dto): Json<LoginRequestDto>) -> impl IntoR
     ),
     tag = "auth"
 )]
-pub async fn signup(Json(signup_request_dto): Json<UserCreateDto>) -> impl IntoResponse {
-    match user::create(signup_request_dto).await {
+pub async fn signup_view(Json(signup_request_dto): Json<UserCreateDto>) -> impl IntoResponse {
+    match services::user::create(signup_request_dto).await {
         Ok(_) => (
             StatusCode::CREATED,
             HeaderMap::new(),
@@ -125,11 +138,69 @@ pub async fn signup(Json(signup_request_dto): Json<UserCreateDto>) -> impl IntoR
     }
 }
 
-//request otp
-// verify otp
-//refresh token
-// change password
-//view profile
-// sign up
-// resend verification email
-// verify email
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/logout",
+    request_body = LogoutDto,
+    responses(
+        (status = 200, description = "User logged out successfully"),
+        (status = 400, description = "Something went wrong")
+    ),
+    tag = "auth"
+)]
+pub async fn logout_view(
+    cookies: Cookies,
+    AuthContext { user, token }: AuthContext,
+    Json(logout_dto): Json<LogoutDto>,
+) -> impl IntoResponse {
+    let mut msg = "User successfully logged out";
+    if logout_dto.all {
+        let mut user: UserActiveModel = user.into();
+        user.auth_change = Set(Some(Utc::now()));
+        match user.update(db()).await {
+            Ok(_) => {}
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!(ApiError::new(
+                        "Something went wrong logging out from all devices"
+                    ))),
+                )
+            }
+        }
+        msg = "User successfully logged out from all devices";
+    }
+    let access_token = JwtAccessToken::from_token(token);
+    match access_token.blacklist().await {
+        Ok(_) => {}
+        Err(e) => {
+            return (StatusCode::BAD_REQUEST, Json(json!(ApiError::new(e))));
+        }
+    }
+    if let Some(cookie) = cookies.get("refresh") {
+        let val = cookie.value();
+        let refresh_token = JwtRefreshToken::from_token(val.to_string());
+        match refresh_token.blacklist().await {
+            Ok(_) => {}
+            Err(e) => {
+                return (StatusCode::BAD_REQUEST, Json(json!(ApiError::new(e))));
+            }
+        }
+    } else {
+        tracing::error!("Cookie not found in logout request")
+    }
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "success": true,
+            "message": msg
+        })),
+    )
+}
+pub async fn request_otp_view() {}
+pub async fn verify_otp_view() {}
+pub async fn refresh_view() {}
+pub async fn password_change_view() {}
+pub async fn verify_account_view() {}
+pub async fn resend_verification_view() {}
+pub async fn me() {}
