@@ -377,9 +377,12 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
 }
 
 
-pub async fn change_password_view() {}
+
+pub async fn change_password_view(
+    
+) {}
 pub async fn verify_account_view() {}
-pub async fn resend_verification_view() {}
+
 
 #[utoipa::path(
     get,
