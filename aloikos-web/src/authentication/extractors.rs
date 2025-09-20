@@ -6,11 +6,13 @@ use axum::Json;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 
+
 #[derive(Clone)]
 pub struct AuthContext {
     pub user: UserModel,
     pub token: String,
 }
+
 
 impl<S> FromRequestParts<S> for AuthContext
 where
@@ -39,6 +41,7 @@ pub struct OtpRequiredContext {
     pub otp_email: String,
 }
 
+
 impl<S> FromRequestParts<S> for OtpRequiredContext
 where
     S: Send + Sync,
@@ -46,6 +49,7 @@ where
     type Rejection = (StatusCode, Json<ApiError>);
     
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+
         let cookies = Cookies::from_request_parts(parts, _state).await.unwrap();
         
         let result = if let Some(cookie) = cookies.get("otp_verified") {

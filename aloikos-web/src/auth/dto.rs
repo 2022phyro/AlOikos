@@ -78,6 +78,7 @@ pub struct ChangePasswordDto {
     pub password: String,
 }
 
+#[derive(Deserialize, ToSchema)]
 pub struct VerifyAccountDto {
     pub email: String,
 }

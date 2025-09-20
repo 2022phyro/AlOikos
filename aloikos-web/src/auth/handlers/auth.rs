@@ -26,8 +26,8 @@ use axum::{
     response::Json,
 };
 use chrono::{Duration as ChronoDuration, Utc};
-use sea_orm::{ColumnTrait as _, EntityTrait, QueryFilter as _};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
+use sea_orm::{ColumnTrait as _, EntityTrait, QueryFilter as _};
 use serde_json::json;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::Cookies;
@@ -392,11 +392,11 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
     tag = "auth"
 )]
 pub async fn change_password_view(
-    Json(body): Json<ChangePasswordDto>,
     OtpRequiredContext {
         otp_verified,
         otp_email,
     }: OtpRequiredContext,
+    Json(body): Json<ChangePasswordDto>,
 ) -> impl IntoResponse {
     if &otp_email != &body.email || !otp_verified {
         return (
@@ -416,42 +416,47 @@ pub async fn change_password_view(
             user.password = Set(hash_password(&body.password).unwrap());
             user.auth_change = Set(Some(Utc::now()));
             match user.update(db()).await {
-                Ok(_) => return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "success": true,
-                        "message": "Password changed successfully"
-                    })),
-                ),
-                Err(e) => return (
-                    StatusCode::BAD_REQUEST,
-                    Json(json!(ApiError::new(format!(
-                        "Failed to change password: {}",
-                        e
-                    )))),
-                ),
+                Ok(_) => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "success": true,
+                            "message": "Password changed successfully"
+                        })),
+                    )
+                }
+                Err(e) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!(ApiError::new(format!(
+                            "Failed to change password: {}",
+                            e
+                        )))),
+                    )
+                }
             }
         }
-        Ok(None) => return (
-            StatusCode::BAD_REQUEST,
-            Json(json!(ApiError::new("User not found"))),
-        ),
-        Err(e) => return (
-            StatusCode::BAD_REQUEST,
-            Json(json!(ApiError::new(format!(
-                "Failed to find user: {}",
-                e
-            )))),
-        ),
+        Ok(None) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!(ApiError::new("User not found"))),
+            )
+        }
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!(ApiError::new(format!("Failed to find user: {}", e)))),
+            )
+        }
     }
 }
 
 pub async fn verify_account_view(
-    Json(body): Json<VerifyAccountDto>,
     OtpRequiredContext {
         otp_verified,
         otp_email,
     }: OtpRequiredContext,
+    Json(body): Json<VerifyAccountDto>,
 ) -> impl IntoResponse {
     if (&otp_email != &body.email) || !otp_verified {
         return (
@@ -468,7 +473,7 @@ pub async fn verify_account_view(
     match user {
         Ok(Some(user_model)) => {
             let mut user: UserActiveModel = user_model.into();
-            user.status = Set(crate::auth::models::UserStatus::Active);
+            user.status = Set(UserStatus::Active);
             match user.update(db()).await {
                 Ok(_) => {}
                 Err(e) => {
@@ -491,13 +496,9 @@ pub async fn verify_account_view(
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
-                Json(json!(ApiError::new(format!(
-                    "Failed to find user: {}",
-                    e
-                )))),
+                Json(json!(ApiError::new(format!("Failed to find user: {}", e)))),
             )
         }
-        
     }
     (
         StatusCode::OK,
