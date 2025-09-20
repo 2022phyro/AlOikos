@@ -41,7 +41,7 @@ pub async fn get(user_id: i64) -> Result<UserModel, DbErr> {
     }
 }
 pub async fn query_builder() {}
-pub async fn filter() {} 
+pub async fn filter( ) {} 
 pub async fn update(user_id: i64, user_data: UserUpdateDto) -> Result<UserModel, DbErr> {
     let user = User::find_by_id(user_id).one(db()).await?;
     let mut user: UserActiveModel = match user {

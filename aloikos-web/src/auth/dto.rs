@@ -30,6 +30,9 @@ pub struct GroupUpdateDto {
 }
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 
+pub struct  UserFilterDto {
+    email: String, 
+}
 pub struct LoginResultDto {
     pub access: String,
     pub refresh: String,
@@ -66,4 +69,15 @@ pub struct OtpVerifyDto {
     pub email: String,
     pub device_id: String, // UUid for identifyng devices
     pub otp: String,
+}
+
+
+#[derive(Deserialize, ToSchema)]
+pub struct ChangePasswordDto {
+    pub email: String,
+    pub password: String,
+}
+
+pub struct VerifyAccountDto {
+    pub email: String,
 }

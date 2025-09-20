@@ -1,7 +1,9 @@
-use crate::auth::dto::{OtpRequestDto, OtpVerifyDto};
+use crate::auth::dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAccountDto};
 use crate::auth::models::prelude::UserActiveModel;
+use crate::auth::models::prelude::{User, UserColumn, UserStatus};
+use crate::authentication::extractors::OtpRequiredContext;
+use crate::authentication::password::hash_password;
 use crate::authentication::{jwt::JwtRefreshToken, otp::Otp};
-use chrono::{Duration as ChronoDuration, Utc};
 use crate::config::CONFIG;
 use crate::{
     auth::{
@@ -23,6 +25,8 @@ use axum::{
     },
     response::Json,
 };
+use chrono::{Duration as ChronoDuration, Utc};
+use sea_orm::{ColumnTrait as _, EntityTrait, QueryFilter as _};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use serde_json::json;
 use tower_cookies::cookie::time::Duration;
@@ -376,13 +380,133 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
     }
 }
 
-
-
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/change-password",
+    request_body = ChangePasswordDto,
+    responses(
+        (status = 200, description = "Password changed successfully"),
+        (status = 400, description = "Failed to change password"),
+        (status = 401, description = "OTP verification failed")
+    ),
+    tag = "auth"
+)]
 pub async fn change_password_view(
-    
-) {}
-pub async fn verify_account_view() {}
+    Json(body): Json<ChangePasswordDto>,
+    OtpRequiredContext {
+        otp_verified,
+        otp_email,
+    }: OtpRequiredContext,
+) -> impl IntoResponse {
+    if &otp_email != &body.email || !otp_verified {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!(ApiError::new(
+                "OTP verification failed, cannot change password"
+            ))),
+        );
+    }
+    let user = User::find()
+        .filter(UserColumn::Email.eq(body.email.clone()))
+        .one(db())
+        .await;
+    match user {
+        Ok(Some(user_model)) => {
+            let mut user: UserActiveModel = user_model.into();
+            user.password = Set(hash_password(&body.password).unwrap());
+            user.auth_change = Set(Some(Utc::now()));
+            match user.update(db()).await {
+                Ok(_) => return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "success": true,
+                        "message": "Password changed successfully"
+                    })),
+                ),
+                Err(e) => return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!(ApiError::new(format!(
+                        "Failed to change password: {}",
+                        e
+                    )))),
+                ),
+            }
+        }
+        Ok(None) => return (
+            StatusCode::BAD_REQUEST,
+            Json(json!(ApiError::new("User not found"))),
+        ),
+        Err(e) => return (
+            StatusCode::BAD_REQUEST,
+            Json(json!(ApiError::new(format!(
+                "Failed to find user: {}",
+                e
+            )))),
+        ),
+    }
+}
 
+pub async fn verify_account_view(
+    Json(body): Json<VerifyAccountDto>,
+    OtpRequiredContext {
+        otp_verified,
+        otp_email,
+    }: OtpRequiredContext,
+) -> impl IntoResponse {
+    if (&otp_email != &body.email) || !otp_verified {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!(ApiError::new(
+                "OTP verification failed, cannot verify account"
+            ))),
+        );
+    }
+    let user = User::find()
+        .filter(UserColumn::Email.eq(body.email.clone()))
+        .one(db())
+        .await;
+    match user {
+        Ok(Some(user_model)) => {
+            let mut user: UserActiveModel = user_model.into();
+            user.status = Set(crate::auth::models::UserStatus::Active);
+            match user.update(db()).await {
+                Ok(_) => {}
+                Err(e) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!(ApiError::new(format!(
+                            "Failed to verify account: {}",
+                            e
+                        )))),
+                    )
+                }
+            }
+        }
+        Ok(None) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!(ApiError::new("User not found"))),
+            )
+        }
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!(ApiError::new(format!(
+                    "Failed to find user: {}",
+                    e
+                )))),
+            )
+        }
+        
+    }
+    (
+        StatusCode::OK,
+        Json(json!({
+            "success": true,
+            "message": "Account verified successfully"
+        })),
+    )
+}
 
 #[utoipa::path(
     get,
@@ -393,9 +517,7 @@ pub async fn verify_account_view() {}
     ),
     tag = "auth"
 )]
-pub async fn me_view(
-    AuthContext { user, token }: AuthContext,
-) -> impl IntoResponse {
+pub async fn me_view(AuthContext { user, token }: AuthContext) -> impl IntoResponse {
     (
         StatusCode::OK,
         Json(json!({
