@@ -1,14 +1,17 @@
-//login
+use crate::auth::dto::{OtpRequestDto, OtpVerifyDto};
 use crate::auth::models::prelude::UserActiveModel;
-use crate::authentication::jwt::JwtRefreshToken;
+use crate::authentication::{jwt::JwtRefreshToken, otp::Otp};
+use chrono::{Duration as ChronoDuration, Utc};
 use crate::config::CONFIG;
 use crate::{
     auth::{
         dto::{LoginRequestDto, LoginResponse, LogoutDto, UserCreateDto},
-        extractors::AuthContext,
         services,
     },
-    authentication::jwt::{Blacklist, JwtAccessToken, Token},
+    authentication::{
+        extractors::AuthContext,
+        jwt::{Blacklist, JwtAccessToken, Token},
+    },
     db::db,
     utils::errors::ApiError,
 };
@@ -20,9 +23,9 @@ use axum::{
     },
     response::Json,
 };
-use chrono::Utc;
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use serde_json::json;
+use tower_cookies::cookie::time::Duration;
 use tower_cookies::Cookies;
 use utoipa;
 
@@ -177,9 +180,10 @@ pub async fn logout_view(
             return (StatusCode::BAD_REQUEST, Json(json!(ApiError::new(e))));
         }
     }
-    if let Some(cookie) = cookies.get("refresh") {
+    if let Some(mut cookie) = cookies.get("refresh") {
         let val = cookie.value();
         let refresh_token = JwtRefreshToken::from_token(val.to_string());
+        cookie.set_max_age(Duration::seconds(0));
         match refresh_token.blacklist().await {
             Ok(_) => {}
             Err(e) => {
@@ -197,10 +201,206 @@ pub async fn logout_view(
         })),
     )
 }
-pub async fn request_otp_view() {}
-pub async fn verify_otp_view() {}
-pub async fn refresh_view() {}
-pub async fn password_change_view() {}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/otp/request",
+    request_body = OtpRequestDto,
+    responses(
+        (status = 200, description = "Otp sent successfully"),
+        (status = 400, description = "Something went wrong")
+    ),
+    tag = "auth"
+)]
+pub async fn otp_request_view(Json(otp_request_dto): Json<OtpRequestDto>) -> impl IntoResponse {
+    let new_otp = Otp::new(
+        &otp_request_dto.device_id,
+        &otp_request_dto.email,
+        otp_request_dto.otp_type,
+    );
+    match new_otp {
+        Ok(otp) => {
+            let code = otp.generate_otp();
+            match code {
+                Ok(_) => {
+                    tracing::info!("OTP {:?} sent successfully to {}", &code, &otp.user_email);
+                    return (
+                        StatusCode::OK,
+                        Json(serde_json::json!({
+                            "success": true,
+                            "message": "OTP sent successfully"
+                        })),
+                    );
+                }
+                Err(e) => {
+                    tracing::error!("Failed to send OTP: {}", e);
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(serde_json::json!({
+                            "success": false,
+                            "error": "Failed to send OTP"
+                        })),
+                    );
+                }
+            }
+        }
+        Err(err) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "success": false,
+                "error": err
+            })),
+        ),
+    }
+}
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/otp/verify",
+    request_body = OtpVerifyDto,
+    responses(
+        (status = 200, description = "Otp verified successfully"),
+        (status = 400, description = "Something went wrong")
+    ),
+    tag = "auth"
+)]
+pub async fn otp_verify_view(Json(body): Json<OtpVerifyDto>) -> impl IntoResponse {
+    let otp = Otp::new(&body.device_id, &body.email, body.otp_type);
+    let mut headers: HeaderMap = HeaderMap::new();
+    match otp {
+        Ok(otp_instance) => {
+            let status = otp_instance.verify_otp(&body.otp);
+            match status {
+                Ok(valid) => {
+                    if valid {
+                        tracing::info!("OTP verified successfully for {}", &body.email);
+                        // Add a cookie stating otp is verified for this device
+                        let cookie_value = format!(
+                "otp_verified=true; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/", CONFIG.otp_expiry);
+                        headers.insert(SET_COOKIE, cookie_value.parse().unwrap());
+                        (
+                            StatusCode::OK,
+                            headers,
+                            Json(serde_json::json!({
+                                "success": true,
+                                "message": "OTP verified successfully"
+                            })),
+                        )
+                    } else {
+                        (
+                            StatusCode::BAD_REQUEST,
+                            headers,
+                            Json(serde_json::json!({
+                                "success": false,
+                                "error": "Invalid OTP"
+                            })),
+                        )
+                    }
+                }
+                Err(e) => (
+                    StatusCode::BAD_REQUEST,
+                    headers,
+                    Json(serde_json::json!({
+                        "success": false,
+                        "error": e
+                    })),
+                ),
+            }
+        }
+        Err(err) => (
+            StatusCode::BAD_REQUEST,
+            headers,
+            Json(serde_json::json!({
+                "success": false,
+                "error": err
+            })),
+        ),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/refresh",
+    responses(
+        (status = 200, description = "Token refreshed successfully"),
+        (status = 400, description = "Invalid request data")
+    ),
+    tag = "auth"
+)]
+pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
+    if let Some(cookie) = cookies.get("refresh") {
+        let val = cookie.value();
+        let refresh_token = JwtRefreshToken::from_token(val.to_string());
+        match refresh_token.full_verify().await {
+            Ok(token_data) => {
+                let access = JwtAccessToken::new(
+                    token_data.claims.sub.clone(),
+                    token_data.claims.auth_change.clone(),
+                );
+                let refresh = JwtRefreshToken::new(
+                    token_data.claims.sub.clone(),
+                    token_data.claims.auth_change.clone(),
+                );
+                let access_expiry =
+                    Utc::now() + ChronoDuration::seconds(CONFIG.jwt_access_duration as i64);
+                let cookie_value = format!(
+                    "refresh_token={}; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/",
+                    refresh.token, CONFIG.jwt_refresh_duration
+                );
+                let mut headers = HeaderMap::new();
+                headers.insert(SET_COOKIE, cookie_value.parse().unwrap());
+                return Ok((
+                    StatusCode::OK,
+                    headers,
+                    Json(json!({
+                        "access": access.token,
+                        "access_expiry": access_expiry,
+                        "user_id": token_data.claims.sub,
+                    })),
+                ));
+            }
+            Err(e) => Err((
+                StatusCode::UNAUTHORIZED,
+                HeaderMap::new(),
+                Json(json!(ApiError::new(format!(
+                    "Invalid refresh token: {}",
+                    e
+                )))),
+            )),
+        }
+    } else {
+        Err((
+            StatusCode::UNAUTHORIZED,
+            HeaderMap::new(),
+            Json(json!(ApiError::new("Refresh token cookie not found"))),
+        ))
+    }
+}
+
+
+pub async fn change_password_view() {}
 pub async fn verify_account_view() {}
 pub async fn resend_verification_view() {}
-pub async fn me() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/auth/me",
+    responses(
+        (status = 200, description = "User details fetched successfully"),
+        (status = 401, description = "Unauthorized")
+    ),
+    tag = "auth"
+)]
+pub async fn me_view(
+    AuthContext { user, token }: AuthContext,
+) -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        Json(json!({
+            "success": true,
+            "data": {
+                "user": user,
+                "token": token
+            }
+        })),
+    )
+}

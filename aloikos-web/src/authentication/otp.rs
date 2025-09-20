@@ -26,12 +26,12 @@ impl Otp {
         }
 
         // Convert secret to base32
-        let base32_secret = encode(Alphabet::RFC4648 { padding: false }, raw_secret.as_bytes());
+        let combined_secret = format!("{}{}", CONFIG.otp_encryption_key, raw_secret);
+        let base32_secret = encode(Alphabet::RFC4648 { padding: false }, combined_secret.as_bytes());
         let secret = Secret::Encoded(base32_secret.clone());
-
         let otp_type = possible_otp_type.unwrap_or_else(|| "EMAIL".to_string());
         let expiry: u64 = if otp_type.to_uppercase() == "EMAIL" {
-            CONFIG.otp_expiry.parse::<u64>().unwrap_or(30)
+            CONFIG.otp_expiry.parse::<u64>().unwrap_or( 30)
         } else {
             30
         };

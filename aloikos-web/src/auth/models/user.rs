@@ -1,4 +1,5 @@
 use sea_orm::entity::prelude::*;
+use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(1))")]
 pub enum UserStatus {
@@ -14,7 +15,7 @@ pub enum UserStatus {
     Review,
 }
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "user")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

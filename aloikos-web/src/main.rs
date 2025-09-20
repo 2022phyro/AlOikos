@@ -37,10 +37,10 @@ fn create_openapi_spec() -> utoipa::openapi::OpenApi {
         .build();
 
     // Register auth endpoints
-    openapi.merge(AuthApiDoc::openapi());
+    openapi.merge(AuthApiDoc::openapi( ));
     openapi
 }
-#[tokio::main]
+#[tokio::main]  
 async fn main() {
     println!("🚀 Starting Aloikos Web Application");
 

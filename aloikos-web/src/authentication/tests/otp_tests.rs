@@ -1,12 +1,13 @@
 
 use crate::authentication::otp::Otp;
 use crate::config::CONFIG;
-const TEST_SECRET: &str = "TESTSECRET123456";
+const TEST_SECRET: &str = "c8085463-15ad-415c-a77a-45eb24d5a75a";
 const TEST_EMAIL: &str = "test@example.com";
 use urlencoding::encode;
 
 #[test]
 fn test_otp_creation_with_valid_inputs() {
+
     let otp_result = Otp::new(TEST_SECRET, TEST_EMAIL, Some("EMAIL".to_string()));
     assert!(
         otp_result.is_ok(),

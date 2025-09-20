@@ -53,3 +53,17 @@ pub struct LoginResponse {
 pub struct LogoutDto {
     pub all: bool
 }
+
+#[derive(Deserialize, ToSchema)]
+pub struct OtpRequestDto {
+    pub otp_type: Option<String>,
+    pub email: String,
+    pub device_id: String, // UUid for identifyng devices
+}
+#[derive(Deserialize, ToSchema)]
+pub struct OtpVerifyDto {
+    pub otp_type: Option<String>,
+    pub email: String,
+    pub device_id: String, // UUid for identifyng devices
+    pub otp: String,
+}
