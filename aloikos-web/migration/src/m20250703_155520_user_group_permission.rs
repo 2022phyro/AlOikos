@@ -17,7 +17,12 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Group::IsAdminGroup).boolean().default(false).not_null())
+                    .col(
+                        ColumnDef::new(Group::IsAdminGroup)
+                            .boolean()
+                            .default(false)
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(Group::Name).string().not_null())
                     .col(ColumnDef::new(Group::Description).text().not_null())
                     .col(
@@ -33,7 +38,6 @@ impl MigrationTrait for Migration {
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
-
             )
             .await?;
         manager
@@ -54,37 +58,63 @@ impl MigrationTrait for Migration {
                             .default(Expr::current_timestamp()),
                     )
                     .col(ColumnDef::new(Permission::Name).string().not_null())
-                    .col(ColumnDef::new(Permission::Code).integer().not_null().unique_key())
-                    .to_owned()
+                    .col(
+                        ColumnDef::new(Permission::Code)
+                            .integer()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .to_owned(),
             )
             .await?;
-        manager.create_table(
-            Table::create()
-            .table(User::Table).if_not_exists()
-            .col(ColumnDef::new(User::Id).big_integer().not_null().primary_key())
-            .col(
-                ColumnDef::new(User::CreatedAt)
-                    .timestamp_with_time_zone()
-                    .not_null()
-                    .default(Expr::current_timestamp()),
+        manager
+            .create_table(
+                Table::create()
+                    .table(User::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(User::Id)
+                            .big_integer()
+                            .not_null()
+                            .primary_key()
+                            .default(Expr::cust("snowflake.nextval()")),
+                    )
+                    .col(
+                        ColumnDef::new(User::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        ColumnDef::new(User::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(ColumnDef::new(User::Email).string().not_null().unique_key())
+                    .col(ColumnDef::new(User::FirstName).string().not_null())
+                    .col(ColumnDef::new(User::LastName).string().not_null())
+                    .col(
+                        ColumnDef::new(User::UserName)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(User::DOB)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(
+                        ColumnDef::new(User::AuthChange)
+                            .timestamp_with_time_zone()
+                            .null(),
+                    )
+                    .col(string(User::Status).not_null().default("unverified"))
+                    .col(ColumnDef::new(User::Password).string().not_null())
+                    .to_owned(),
             )
-            .col(
-                ColumnDef::new(User::UpdatedAt)
-                    .timestamp_with_time_zone()
-                    .not_null()
-                    .default(Expr::current_timestamp()),
-            )
-            .col(ColumnDef::new(User::Email).string().not_null().unique_key())
-            .col(ColumnDef::new(User::FirstName).string().not_null())
-            .col(ColumnDef::new(User::LastName).string().not_null())
-            .col(ColumnDef::new(User::OtpSecret).string().not_null())
-            .col(ColumnDef::new(User::UserName).string().not_null().unique_key())
-            .col(ColumnDef::new(User::DateOfBirth).timestamp_with_time_zone().null())
-            .col(ColumnDef::new(User::AuthChange).timestamp_with_time_zone().null())
-            .col(string(User::Status).not_null().default("unverified"))
-            .col(ColumnDef::new(User::Password).string().not_null())
-            .to_owned()
-        ).await?;
+            .await?;
         manager
             .create_table(
                 Table::create()
@@ -117,8 +147,16 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(PermissionGroup::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(PermissionGroup::GroupId).big_integer().not_null())
-                    .col(ColumnDef::new(PermissionGroup::PermissionId).big_integer().not_null())
+                    .col(
+                        ColumnDef::new(PermissionGroup::GroupId)
+                            .big_integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(PermissionGroup::PermissionId)
+                            .big_integer()
+                            .not_null(),
+                    )
                     .primary_key(
                         Index::create()
                             .col(PermissionGroup::GroupId)
@@ -177,14 +215,30 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Drop indexes first
-        manager.drop_index(Index::drop().name("idx-user-email").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx-user-username").to_owned()).await?;
-        manager.drop_index(Index::drop().name("idx-user-status").to_owned()).await?;
-        manager.drop_table(Table::drop().table(PermissionGroup::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(UserGroup::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(User::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Permission::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Group::Table).to_owned()).await?;
+        manager
+            .drop_index(Index::drop().name("idx-user-email").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx-user-username").to_owned())
+            .await?;
+        manager
+            .drop_index(Index::drop().name("idx-user-status").to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(PermissionGroup::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(UserGroup::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(User::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Permission::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Group::Table).to_owned())
+            .await?;
         Ok(())
     }
 }
@@ -216,13 +270,12 @@ enum User {
     FirstName,
     LastName,
     UserName,
-    DateOfBirth,
+    DOB,
     Status,
     AuthChange,
     Password,
     CreatedAt,
     UpdatedAt,
-    OtpSecret
 }
 
 #[derive(Iden)]
