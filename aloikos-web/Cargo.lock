@@ -69,6 +69,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "aloikos-web"
 version = "0.1.0"
 dependencies = [
+ "altraits",
  "argon2",
  "async-once-cell",
  "async-trait",
@@ -81,7 +82,6 @@ dependencies = [
  "dialoguer",
  "dotenv",
  "futures",
- "heck 0.5.0",
  "hex",
  "hkdf",
  "hyper",
@@ -89,10 +89,9 @@ dependencies = [
  "jsonwebtoken",
  "lazy_static",
  "log",
+ "macros",
  "once_cell",
- "proc-macro2 1.0.104",
  "qrcode",
- "quote 1.0.40",
  "rand 0.8.5",
  "redis",
  "rs-snowflake",
@@ -100,7 +99,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "syn 2.0.104",
  "tokio",
  "totp-rs",
  "tower",
@@ -115,6 +113,10 @@ dependencies = [
  "uuid",
  "validator",
 ]
+
+[[package]]
+name = "altraits"
+version = "0.1.0"
 
 [[package]]
 name = "android-tzdata"
@@ -1671,6 +1673,17 @@ name = "lzw"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d947cbb889ed21c2a84be6ffbaebf5b4e0f4340638cba0444907e38b56be084"
+
+[[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "altraits",
+ "heck 0.5.0",
+ "proc-macro2 1.0.104",
+ "quote 1.0.40",
+ "syn 2.0.104",
+]
 
 [[package]]
 name = "matchers"

@@ -2,6 +2,7 @@ use crate::auth::dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAcc
 use crate::auth::models::prelude::UserActiveModel;
 use crate::auth::models::prelude::{User, UserColumn, UserStatus};
 use crate::authentication::extractors::OtpRequiredContext;
+use crate::authentication::otp::{OtpAction, OtpType};
 use crate::authentication::password::hash_password;
 use crate::authentication::{jwt::JwtRefreshToken, otp::Otp};
 use crate::config::CONFIG;
@@ -20,8 +21,8 @@ use crate::{
 use axum::response::IntoResponse;
 use axum::{
     http::{
-        header::{HeaderMap, SET_COOKIE},
         StatusCode,
+        header::{HeaderMap, SET_COOKIE},
     },
     response::Json,
 };
@@ -29,8 +30,8 @@ use chrono::{Duration as ChronoDuration, Utc};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use sea_orm::{ColumnTrait as _, EntityTrait, QueryFilter as _};
 use serde_json::json;
-use tower_cookies::cookie::time::Duration;
 use tower_cookies::Cookies;
+use tower_cookies::cookie::time::Duration;
 use utoipa;
 
 /// Handles user login by validating credentials and issuing an access token.
@@ -172,7 +173,7 @@ pub async fn logout_view(
                     Json(json!(ApiError::new(
                         "Something went wrong logging out from all devices"
                     ))),
-                )
+                );
             }
         }
         msg = "User successfully logged out from all devices";
@@ -218,9 +219,11 @@ pub async fn logout_view(
 )]
 pub async fn otp_request_view(Json(otp_request_dto): Json<OtpRequestDto>) -> impl IntoResponse {
     let new_otp = Otp::new(
-        &otp_request_dto.device_id,
         &otp_request_dto.email,
-        otp_request_dto.otp_type,
+        OtpAction::VerifyAccount,
+        OtpType::EMAIL,
+        // OtpAction::to_enum(otp_request_dto.action.clone()),
+        // OtpType::to_enum(&otp_request_dto.otp_type.clone()),
     );
     match new_otp {
         Ok(otp) => {
@@ -268,7 +271,13 @@ pub async fn otp_request_view(Json(otp_request_dto): Json<OtpRequestDto>) -> imp
     tag = "auth"
 )]
 pub async fn otp_verify_view(Json(body): Json<OtpVerifyDto>) -> impl IntoResponse {
-    let otp = Otp::new(&body.device_id, &body.email, body.otp_type);
+    let otp = Otp::new(
+        &body.email,
+        OtpAction::VerifyAccount,
+        OtpType::EMAIL,
+        // OtpAction::to_enum(body.action.clone()),
+        // OtpType::to_enum(&body.otp_type.clone()),
+    );
     let mut headers: HeaderMap = HeaderMap::new();
     match otp {
         Ok(otp_instance) => {
@@ -279,7 +288,9 @@ pub async fn otp_verify_view(Json(body): Json<OtpVerifyDto>) -> impl IntoRespons
                         tracing::info!("OTP verified successfully for {}", &body.email);
                         // Add a cookie stating otp is verified for this device
                         let cookie_value = format!(
-                "otp_verified=true; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/", CONFIG.otp_expiry);
+                            "otp_verified=true; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/",
+                            CONFIG.otp_expiry
+                        );
                         headers.insert(SET_COOKIE, cookie_value.parse().unwrap());
                         (
                             StatusCode::OK,
@@ -423,7 +434,7 @@ pub async fn change_password_view(
                             "success": true,
                             "message": "Password changed successfully"
                         })),
-                    )
+                    );
                 }
                 Err(e) => {
                     return (
@@ -432,7 +443,7 @@ pub async fn change_password_view(
                             "Failed to change password: {}",
                             e
                         )))),
-                    )
+                    );
                 }
             }
         }
@@ -440,13 +451,13 @@ pub async fn change_password_view(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(ApiError::new("User not found"))),
-            )
+            );
         }
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(ApiError::new(format!("Failed to find user: {}", e)))),
-            )
+            );
         }
     }
 }
@@ -494,7 +505,7 @@ pub async fn verify_account_view(
                             "Failed to verify account: {}",
                             e
                         )))),
-                    )
+                    );
                 }
             }
         }
@@ -502,13 +513,13 @@ pub async fn verify_account_view(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(ApiError::new("User not found"))),
-            )
+            );
         }
         Err(e) => {
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(ApiError::new(format!("Failed to find user: {}", e)))),
-            )
+            );
         }
     }
     (

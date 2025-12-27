@@ -3,10 +3,6 @@ name = "aloikos-web"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-proc-macro = true
-
-
 [dependencies]
 jsonwebtoken = "9.3.1"
 redis = { version = "0.32", features = ["aio", "tokio-comp"] }
@@ -49,7 +45,5 @@ utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 tower-cookies = "0.11.0"
 utoipa-redoc = { version = "6.0.0", features = ["axum"] }
 hkdf = "0.12.4"
-proc-macro2 = "1.0.104"
-syn = "2.0"
-quote = "1.0"
-heck = "0.5.0"
+macros = { path = "./macros" }
+altraits = { path = "./altraits"}

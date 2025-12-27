@@ -1,4 +1,4 @@
-use aloikos_web::authentication::otp::Otp;
+use aloikos_web::authentication::otp::{Otp, OtpAction, OtpType};
 
 fn main() {
     println!("🔐 OTP Service Test Demo");
@@ -6,7 +6,7 @@ fn main() {
     
     // Test 1: Create OTP with random secret
     println!("\n1️⃣ Creating OTP with random secret...");
-    match Otp::new_with_random_secret("demo@example.com", Some("AUTHENTICATOR".to_string())) {
+    match Otp::new("demo@example.com", OtpAction::TwoFaLogin, OtpType::AUTHENTICATOR) {
         Ok(otp) => {
             println!("✅ OTP created successfully!");
             println!("   User: {}", otp.get_user_email());
@@ -55,15 +55,9 @@ fn main() {
     
     // Test 6: Error handling
     println!("\n6️⃣ Testing error handling...");
-    
-    // Empty secret
-    match Otp::new("", "test@example.com", None) {
-        Ok(_) => println!("⚠️ Empty secret should have failed"),
-        Err(e) => println!("✅ Empty secret correctly rejected: {}", e),
-    }
-    
+
     // Empty email
-    match Otp::new("TESTSECRET", "", None) {
+    match Otp::new("", OtpAction::MakeTransaction, OtpType::EMAIL) {
         Ok(_) => println!("⚠️ Empty email should have failed"),
         Err(e) => println!("✅ Empty email correctly rejected: {}", e),
     }

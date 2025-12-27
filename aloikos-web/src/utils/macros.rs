@@ -1,9 +1,3 @@
-extern crate proc_macro;
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Meta, Lit};
-use heck::{CamelCase, SnakeCase, MixedCase};
-
 #[macro_export]
 macro_rules! new_model {
     ($model:path, { $($field:ident : $value:expr),* $(,)? }) => {{
@@ -49,61 +43,4 @@ macro_rules! get_or_create {
             Err(e) => Err(e),
         }
     }};
-}
-
-
-#[proc_macro_derive(StrChoice, attributes(strchoice))]
-pub fn derive_str_choice(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let enum_name = &input.ident;
-
-    // Default case
-    let mut case_type = "camel".to_string();
-
-    // Check for #[strchoice(case="...")]
-    for attr in input.attrs.iter() {
-        if attr.path.is_ident("strchoice") {
-            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
-                for nested in meta_list.nested.iter() {
-                    if let syn::NestedMeta::Meta(Meta::NameValue(nv)) = nested {
-                        if nv.path.is_ident("case") {
-                            if let Lit::Str(litstr) = &nv.lit {
-                                case_type = litstr.value();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Map variants
-    let variant_matches = if let syn::Data::Enum(ref data_enum) = input.data {
-        data_enum.variants.iter().map(|v| {
-            let ident = &v.ident;
-            let name = ident.to_string();
-            // convert at compile time using heck
-            let converted = match case_type.as_str() {
-                "snake" => name.to_snake_case(),
-                "camel" => name.to_camel_case(),
-                "pascal" => name.to_mixed_case(),
-                _ => name.clone(),
-            };
-            quote! { #enum_name::#ident => #converted.to_string(), }
-        })
-    } else {
-        panic!("StrChoice can only be derived for enums");
-    };
-
-    let expanded = quote! {
-        impl StrChoice for #enum_name {
-            fn to_str(&self) -> String {
-                match self {
-                    #(#variant_matches)*
-                }
-            }
-        }
-    };
-
-    TokenStream::from(expanded)
 }

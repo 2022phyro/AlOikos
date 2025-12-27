@@ -1,8 +1,6 @@
 use super::super::models::prelude::{User, UserActiveModel, UserModel};
 use crate::auth::dto::{UserCreateDto, UserUpdateDto};
 use crate::auth::models::user::UserStatus;
-use crate::authentication::encryption::encrypt_string;
-use crate::authentication::otp::Otp;
 use crate::authentication::password::hash_password;
 use crate::db::db;
 use crate::new_model;
@@ -14,7 +12,6 @@ use sea_orm::{ActiveModelTrait, DbErr, DeleteResult, EntityTrait, Set};
 // }
 
 pub async fn create(user_data: UserCreateDto) -> Result<UserModel, DbErr> {
-    let otp_secret = encrypt_string(&Otp::generate_random_secret_raw()).unwrap();
     let user = new_model!(
         UserActiveModel, {
             email: user_data.email,
@@ -24,7 +21,6 @@ pub async fn create(user_data: UserCreateDto) -> Result<UserModel, DbErr> {
             auth_change: Some(Utc::now()),
             status: UserStatus::Unverified,
             password: hash_password(&user_data.password).unwrap(),
-            otp_secret: otp_secret,
         }
     );
     let user: UserModel = user.insert(db()).await?;
