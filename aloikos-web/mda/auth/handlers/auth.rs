@@ -382,7 +382,7 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
 
 #[utoipa::path(
     post,
-    path = "/api/v1/auth/change-password",
+    path = "/api/v1/auth/password/change",
     request_body = ChangePasswordDto,
     responses(
         (status = 200, description = "Password changed successfully"),
@@ -451,6 +451,17 @@ pub async fn change_password_view(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/account/verify",
+    request_body = VerifyAccountDto,
+    responses(
+        (status = 200, description = "Account verified successfully"),
+        (status = 400, description = "Failed to verify account"),
+        (status = 401, description = "OTP verification failed")
+    ),
+    tag = "auth"
+)]
 pub async fn verify_account_view(
     OtpRequiredContext {
         otp_verified,

@@ -1,15 +1,12 @@
-use axum::extract::Request;
-use axum::response::{IntoResponse, Response};
-use axum::Json;
-use axum::{
-    http::StatusCode,
-    middleware::{Next},
-};
-use serde_json::json;
-
 use crate::auth::services::authentication::{verify_token, TokenType};
 use crate::auth::services::user;
 use crate::utils::errors::ApiError;
+use axum::extract::Request;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use axum::{http::StatusCode, middleware::Next};
+use serde_json::json;
+use uuid::Uuid;
 
 pub fn extract_token_from_headers(req: &Request) -> Option<String> {
     req.headers()
@@ -18,6 +15,45 @@ pub fn extract_token_from_headers(req: &Request) -> Option<String> {
         .and_then(|s| s.strip_prefix("JWT "))
         .map(|s| s.to_string())
 }
+pub async fn device_fingerprint_middleware(
+    mut req: Request,
+    next: Next,
+) -> Response {
+// get fingerprint from cookies
+    let device_fingerprint = req
+        .headers()
+        .get("Cookie")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|cookies| {
+            for cookie in cookies.split(';') {
+                let cookie = cookie.trim();
+                if cookie.starts_with("fp=") {
+                    return Some(cookie.trim_start_matches("fp=").to_string());
+                }
+            }
+            None
+        });
+
+    if let Some(fingerprint) = device_fingerprint {
+        req.extensions_mut().insert(fingerprint);
+    } else {
+        let fingerprint = Uuid::now_v7().simple().to_string();
+        let cookie = format!(
+            "fp={}; Max-Age={}; Path=/; HttpOnly",
+            fingerprint,
+            7 * 24 * 60 * 60 // 7 days in seconds
+        );
+        req.headers_mut().append(
+            "Set-Cookie",
+            axum::http::HeaderValue::from_str(&cookie).unwrap(),
+        );
+    req.extensions_mut().insert(fingerprint);
+    }
+    next.run(req).await
+}
+
+// pub async fn
+
 pub async fn auth_middleware(mut req: Request, next: Next) -> Result<Response, impl IntoResponse> {
     let token = extract_token_from_headers(&req).ok_or((
         StatusCode::UNAUTHORIZED,
@@ -28,7 +64,10 @@ pub async fn auth_middleware(mut req: Request, next: Next) -> Result<Response, i
         .map_err(|e| {
             (
                 StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!(ApiError::new(format!("Token verification failed: {}", e)))),
+                Json(serde_json::json!(ApiError::new(format!(
+                    "Token verification failed: {}",
+                    e
+                )))),
             )
         })?;
     let user_id = claims.sub.parse::<i64>().map_err(|_| {

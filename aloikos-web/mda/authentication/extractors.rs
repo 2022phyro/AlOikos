@@ -21,7 +21,6 @@ where
     type Rejection = (StatusCode, Json<ApiError>);
     
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // If using middleware, the user should already be in extensions
         let user = parts.extensions.get::<UserModel>().cloned().ok_or((
             StatusCode::UNAUTHORIZED,
             Json(ApiError::new("Authentication required")),

@@ -30,10 +30,10 @@ pub async fn login(email: &str, password: String) -> Result<LoginResultDto, DbEr
     if !is_valid {
         return Err(DbErr::Custom("Invalid password".to_owned()));
     }
-    let access = JwtAccessToken::new(user.id.to_string(), user.auth_change.unwrap());
+    let access: JwtAccessToken = JwtAccessToken::new(user.id.to_string(), user.auth_change.unwrap());
     let refresh: JwtRefreshToken = JwtRefreshToken::new(user.id.to_string(), user.auth_change.unwrap());
-    let access_expiry = Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64);
-    let refresh_expiry = Utc::now() + Duration::seconds(CONFIG.jwt_refresh_duration);
+    let access_expiry: chrono::DateTime<Utc> = Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64);
+    let refresh_expiry: chrono::DateTime<Utc> = Utc::now() + Duration::seconds(CONFIG.jwt_refresh_duration);
     Ok(LoginResultDto {
         access: access.token,
         refresh: refresh.token,

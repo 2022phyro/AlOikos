@@ -49,7 +49,6 @@ impl Config {
                 .expect("Must be a valid number"),
             jwt_issuer: env::var("JWT_ISSUER").unwrap_or_else(|_| "Aloikos".to_string()),
             redis_url: env::var("REDIS_URL").expect("Set Redis url"),
-            
 
             otp_expiry: env::var("OTP_EXPIRY").unwrap_or_else(|_| "30".to_string()),
             otp_digit_length: env::var("OTP_DIGIT_LENGTH")

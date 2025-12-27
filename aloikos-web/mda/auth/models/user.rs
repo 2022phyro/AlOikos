@@ -35,6 +35,7 @@ pub struct Model {
     pub otp_secret: String,
 }
 
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::user_group::Entity")]
@@ -58,4 +59,14 @@ impl Related<super::group::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {
     
+}
+
+pub struct AnonymousUser {
+    pub id: i64,
+    
+}
+impl AnonymousUser {
+    pub fn new(id: i64) -> Self {
+        AnonymousUser { id }
+    }
 }

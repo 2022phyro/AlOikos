@@ -15,8 +15,8 @@ pub fn auth_routes() -> Router {
         .route("/otp/request", post(otp_request_view))
         .route("/otp/verify", post(otp_verify_view))
         .route("/refresh", post(refresh_token_view))
-        .route("/change-password", post(change_password_view))
-        .route("/verify-account", post(verify_account_view))
+        .route("/password/change", post(change_password_view))
+        .route("/account/verify", post(verify_account_view))
 }
 pub fn auth_protected_routes() -> Router {
     Router::new()
