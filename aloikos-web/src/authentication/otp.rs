@@ -25,6 +25,11 @@ pub enum OtpType {
     EMAIL,
     AUTHENTICATOR
 }
+impl PartialEq for OtpType {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_str() == other.to_str()
+    }
+}
 impl OtpType {
     pub fn to_enum(value: &str) -> Self {
         match value {
@@ -78,7 +83,7 @@ impl Otp {
     /// Create a new OTP instance
     pub fn new(user_email: &str, action: OtpAction, otp_type: OtpType) -> Result<Self, String> {
         if user_email.is_empty() {
-            return Err("User email cannot be empty".to_string());
+            return Err("Email cannot be empty".to_string());
         }
         let derived_key_bytes = Self::derive_key(user_email, action);
         let base32_secret = encode(Alphabet::RFC4648 { padding: false }, &derived_key_bytes);

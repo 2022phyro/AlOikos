@@ -60,7 +60,7 @@ async fn test_token_full_verify_before_and_after_blacklist() {
 async fn test_token_import_and_verification() {
     let auth_change = Utc::now();
     let original = JwtAccessToken::new("user_e".into(), auth_change);
-    let token_string = original.token.clone();
+    let token_string = original.raw().to_string();
     let imported = JwtAccessToken::from_token(token_string);
 
     assert!(imported.verify().is_ok());

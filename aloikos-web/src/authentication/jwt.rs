@@ -1,22 +1,17 @@
+use crate::config::CONFIG;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{
-    self, decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData,
-    Validation,
+    self, decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use redis::AsyncCommands;
 use sea_orm::prelude::DateTimeUtc;
-use std::{str::FromStr, vec};
 use serde::{Deserialize, Serialize};
-use crate::{config::CONFIG};
+use std::{str::FromStr, vec};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct JwtAccessToken {
-    pub token: String,
-}
-pub struct JwtRefreshToken {
-    pub token: String,
-}
+pub struct JwtAccessToken(String);
 
+pub struct JwtRefreshToken(String);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
@@ -30,12 +25,13 @@ pub trait Token {
     fn from_token(token: String) -> Self;
     fn new(user_id: String, auth_change: DateTimeUtc) -> Self;
     fn verify(&self) -> Result<TokenData<Claims>, String>;
-    fn signing_key() -> EncodingKey {
+    fn skey() -> EncodingKey {
         EncodingKey::from_secret(CONFIG.jwt_signing_key.as_bytes())
     }
-    fn verifying_key() -> DecodingKey {
+    fn vkey() -> DecodingKey {
         DecodingKey::from_secret(CONFIG.jwt_verifying_key.as_bytes())
     }
+    fn raw(&self) -> &str;
 }
 
 #[async_trait::async_trait]
@@ -57,10 +53,9 @@ pub trait Blacklist {
     fn jti(&self) -> Option<String>;
 }
 
-
 impl Token for JwtAccessToken {
     fn from_token(token: String) -> Self {
-        JwtAccessToken { token }
+        Self(token)
     }
     fn new(user_id: String, auth_change: DateTimeUtc) -> Self {
         // Here you would typically generate a JWT token based on user_id and token_type
@@ -69,27 +64,32 @@ impl Token for JwtAccessToken {
         let headers = Header::new(default_algorithm);
         let claims = Claims {
             sub: user_id.clone(),
-            exp: (Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64)).timestamp() as usize,
+            exp: (Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64)).timestamp()
+                as usize,
             token_type: "access".to_string(),
-            auth_change:auth_change,
+            auth_change: auth_change,
             jti,
         };
-        let token = encode(&headers, &claims, &Self::signing_key()).expect("Failed to encode JWT");
-        JwtAccessToken { token }
+        let token: String = encode(&headers, &claims, &Self::skey()).expect("Failed to encode JWT");
+        Self(token)
     }
     fn verify(&self) -> Result<TokenData<Claims>, String> {
         let default_algorithm = Algorithm::from_str(&CONFIG.jwt_algorithm).unwrap();
         let mut validation = Validation::default();
         validation.leeway = CONFIG.jwt_refresh_duration as u64;
         validation.algorithms = vec![default_algorithm];
-        let result = decode::<Claims>(&self.token, &Self::verifying_key(), &validation).map_err(|e| e.to_string())?;
+        let result =
+            decode::<Claims>(&self.0, &Self::vkey(), &validation).map_err(|e| e.to_string())?;
         Ok(result)
+    }
+    fn raw(&self) -> &str {
+        &self.0
     }
 }
 
 impl Token for JwtRefreshToken {
     fn from_token(token: String) -> Self {
-        JwtRefreshToken { token }
+        Self(token)
     }
     fn new(user_id: String, auth_change: DateTimeUtc) -> Self {
         // Here you would typically generate a JWT token based on user_id and token_type
@@ -103,17 +103,20 @@ impl Token for JwtRefreshToken {
             auth_change,
             jti,
         };
-        let token = encode(&headers, &claims, &Self::signing_key()).expect("Failed to encode JWT");
-        JwtRefreshToken { token }
+        let token = encode(&headers, &claims, &Self::skey()).expect("Failed to encode JWT");
+        Self(token)
     }
     fn verify(&self) -> Result<TokenData<Claims>, String> {
         let default_algorithm = Algorithm::from_str(&CONFIG.jwt_algorithm).unwrap();
         let mut validation = Validation::default();
         validation.leeway = CONFIG.jwt_refresh_duration as u64;
         validation.algorithms = vec![default_algorithm];
-        let result = decode::<Claims>(&self.token, &Self::verifying_key(), &validation)
-            .map_err(|e| e.to_string())?;
+        let result =
+            decode::<Claims>(&self.0, &Self::vkey(), &validation).map_err(|e| e.to_string())?;
         Ok(result)
+    }
+    fn raw(&self) -> &str {
+        &self.0
     }
 }
 
@@ -130,11 +133,7 @@ impl Blacklist for JwtAccessToken {
             .jti()
             .unwrap_or_else(|| panic!("JWT does not have a valid jti (JWT ID). Cannot blacklist."));
         let _: () = con
-            .set_ex(
-                key,
-                true,
-                CONFIG.jwt_access_duration as u64,
-            )
+            .set_ex(key, true, CONFIG.jwt_access_duration as u64)
             .await
             .map_err(|e| e.to_string())?;
         Ok(())
@@ -147,7 +146,7 @@ impl Blacklist for JwtAccessToken {
         validation.validate_exp = false;
         validation.validate_nbf = false;
         validation.validate_aud = false;
-        if let Ok(token_data) = decode::<Claims>(&self.token, &Self::verifying_key(), &validation) {
+        if let Ok(token_data) = decode::<Claims>(&self.0, &Self::vkey(), &validation) {
             return Some(token_data.claims.jti);
         }
         None
@@ -166,11 +165,7 @@ impl Blacklist for JwtRefreshToken {
             .jti()
             .unwrap_or_else(|| panic!("JWT does not have a valid jti (JWT ID). Cannot blacklist."));
         let _: () = con
-            .set_ex(
-                key,
-                true,
-                CONFIG.jwt_refresh_duration as u64,
-            )
+            .set_ex(key, true, CONFIG.jwt_refresh_duration as u64)
             .await
             .map_err(|e| e.to_string())?;
         Ok(())
@@ -183,7 +178,7 @@ impl Blacklist for JwtRefreshToken {
         validation.validate_exp = false;
         validation.validate_nbf = false;
         validation.validate_aud = false;
-        if let Ok(token_data) = decode::<Claims>(&self.token, &Self::verifying_key(), &validation) {
+        if let Ok(token_data) = decode::<Claims>(&self.0, &Self::vkey(), &validation) {
             return Some(token_data.claims.jti);
         }
         None

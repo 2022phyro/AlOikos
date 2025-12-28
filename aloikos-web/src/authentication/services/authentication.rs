@@ -9,8 +9,7 @@ use crate::{
 };
 use chrono::{Duration, Utc};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
-
-use super::super::models::prelude::{User, UserColumn};
+use crate::users::models::prelude::{User, UserColumn};
 
 pub enum TokenType {
     Access(String),
@@ -35,8 +34,8 @@ pub async fn login(email: &str, password: String) -> Result<LoginResultDto, DbEr
     let access_expiry: chrono::DateTime<Utc> = Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64);
     let refresh_expiry: chrono::DateTime<Utc> = Utc::now() + Duration::seconds(CONFIG.jwt_refresh_duration);
     Ok(LoginResultDto {
-        access: access.token,
-        refresh: refresh.token,
+        access: access.raw().to_string(),
+        refresh: refresh.raw().to_string(),
         access_expiry,
         refresh_expiry,
         user_id: user.id.to_string(),
@@ -54,8 +53,8 @@ pub async fn refresh(token: String) -> Result<LoginResultDto, DbErr> {
             let access_expiry = Utc::now() + Duration::seconds(CONFIG.jwt_access_duration as i64);
             let refresh_expiry = Utc::now() + Duration::seconds(CONFIG.jwt_refresh_duration);
             return Ok(LoginResultDto {
-                access: access.token,
-                refresh: refresh.token,
+                access: access.raw().to_string(),
+                refresh: refresh.raw().to_string(),
                 access_expiry,
                 refresh_expiry,
                 user_id: claims.sub,
@@ -68,11 +67,11 @@ pub async fn refresh(token: String) -> Result<LoginResultDto, DbErr> {
 pub async fn verify_token(token: TokenType) -> Result<Claims, DbErr> {
     let claims_result = match token {
         TokenType::Access(raw_token) => {
-            let set_token = JwtAccessToken { token: raw_token };
+            let set_token = JwtAccessToken::from_token(raw_token);
             set_token.full_verify().await
         }
         TokenType::Refresh(raw_token) => {
-            let set_token = JwtRefreshToken { token: raw_token };
+            let set_token = JwtRefreshToken::from_token(raw_token);
             set_token.full_verify().await
         }
     };

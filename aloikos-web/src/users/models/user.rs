@@ -1,5 +1,7 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use super::super::super::admin::models::group;
+
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(1))")]
 pub enum UserStatus {
@@ -47,7 +49,7 @@ impl Related<super::user_group::Entity> for Entity {
     }
 }
 
-impl Related<super::group::Entity> for Entity {
+impl Related<group::Entity> for Entity {
     fn to() -> RelationDef {
         super::user_group::Relation::Group.def()
     }

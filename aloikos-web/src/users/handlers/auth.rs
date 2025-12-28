@@ -1,6 +1,5 @@
-use crate::auth::dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAccountDto};
-use crate::auth::models::prelude::UserActiveModel;
-use crate::auth::models::prelude::{User, UserColumn, UserStatus};
+use crate::users::dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAccountDto};
+use crate::users::models::prelude::{User, UserColumn, UserStatus, UserActiveModel};
 use crate::authentication::extractors::OtpRequiredContext;
 use crate::authentication::otp::{OtpAction, OtpType};
 use crate::authentication::password::hash_password;
@@ -359,7 +358,7 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
                     Utc::now() + ChronoDuration::seconds(CONFIG.jwt_access_duration as i64);
                 let cookie_value = format!(
                     "refresh_token={}; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/",
-                    refresh.token, CONFIG.jwt_refresh_duration
+                    refresh.raw(), CONFIG.jwt_refresh_duration
                 );
                 let mut headers = HeaderMap::new();
                 headers.insert(SET_COOKIE, cookie_value.parse().unwrap());
@@ -367,7 +366,7 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
                     StatusCode::OK,
                     headers,
                     Json(json!({
-                        "access": access.token,
+                        "access": access.raw(),
                         "access_expiry": access_expiry,
                         "user_id": token_data.claims.sub,
                     })),
