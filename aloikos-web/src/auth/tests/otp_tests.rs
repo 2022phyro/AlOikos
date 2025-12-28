@@ -1,5 +1,5 @@
 
-use crate::authentication::otp::{Otp, OtpType, OtpAction};
+use crate::auth::otp::{Otp, OtpType, OtpAction};
 use crate::config::CONFIG;
 const TEST_EMAIL: &str = "test@example.com";
 use urlencoding::encode;

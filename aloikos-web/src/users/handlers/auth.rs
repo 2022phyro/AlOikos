@@ -1,27 +1,16 @@
-use crate::users::dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAccountDto};
-use crate::users::models::prelude::{User, UserColumn, UserStatus, UserActiveModel};
-use crate::authentication::extractors::OtpRequiredContext;
-use crate::authentication::otp::{OtpAction, OtpType};
-use crate::authentication::password::hash_password;
-use crate::authentication::{jwt::JwtRefreshToken, otp::Otp};
+use crate::auth::extractors::OtpRequiredContext;
+use crate::auth::otp::{OtpAction, OtpType};
+use crate::auth::password::hash_password;
+use crate::auth::{jwt::{JwtRefreshToken, JwtAccessToken, Blacklist, Token}, otp::Otp, extractors::AuthContext, services};
 use crate::config::CONFIG;
-use crate::{
-    auth::{
-        dto::{LoginRequestDto, LoginResponse, LogoutDto, UserCreateDto},
-        services,
-    },
-    authentication::{
-        extractors::AuthContext,
-        jwt::{Blacklist, JwtAccessToken, Token},
-    },
-    db::db,
-    utils::errors::ApiError,
-};
+use crate::users::{dto::{ChangePasswordDto, OtpRequestDto, OtpVerifyDto, VerifyAccountDto, LoginRequestDto, LoginResponse, LogoutDto, UserCreateDto}};
+use crate::users::models::prelude::{User, UserActiveModel, UserColumn, UserStatus};
+use crate::{db::db,utils::errors::ApiError};
 use axum::response::IntoResponse;
 use axum::{
     http::{
-        StatusCode,
         header::{HeaderMap, SET_COOKIE},
+        StatusCode,
     },
     response::Json,
 };
@@ -29,8 +18,8 @@ use chrono::{Duration as ChronoDuration, Utc};
 use sea_orm::{ActiveModelTrait, ActiveValue::Set};
 use sea_orm::{ColumnTrait as _, EntityTrait, QueryFilter as _};
 use serde_json::json;
-use tower_cookies::Cookies;
 use tower_cookies::cookie::time::Duration;
+use tower_cookies::Cookies;
 use utoipa;
 
 /// Handles user login by validating credentials and issuing an access token.
@@ -358,7 +347,8 @@ pub async fn refresh_token_view(cookies: Cookies) -> impl IntoResponse {
                     Utc::now() + ChronoDuration::seconds(CONFIG.jwt_access_duration as i64);
                 let cookie_value = format!(
                     "refresh_token={}; HttpOnly; Secure; SameSite=Strict; Max-Age={}; Path=/",
-                    refresh.raw(), CONFIG.jwt_refresh_duration
+                    refresh.raw(),
+                    CONFIG.jwt_refresh_duration
                 );
                 let mut headers = HeaderMap::new();
                 headers.insert(SET_COOKIE, cookie_value.parse().unwrap());

@@ -23,11 +23,7 @@ pub struct UserUpdateDto {
     pub password: Option<String>,
     pub date_of_birth: Option<DateTime<Utc>>,
 }
-pub struct GroupUpdateDto {
-    pub name: Option<String>,
-    pub description: Option<String>,
-    pub is_admin_group: Option<bool>,
-}
+
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 
 pub struct  UserFilterDto {

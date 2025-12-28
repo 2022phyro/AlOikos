@@ -1,6 +1,6 @@
 use crate::{
-    auth::dto::LoginResultDto,
-    authentication::{
+    users::dto::LoginResultDto,
+    auth::{
         jwt::{Claims, JwtAccessToken, JwtRefreshToken, Token},
         password::verify_password,
     },

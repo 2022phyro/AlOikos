@@ -1,4 +1,4 @@
-use aloikos_web::{auth::AuthApiDoc, db::connect_db, routes::auth};
+use aloikos_web::{users::AuthApiDoc, db::connect_db, routes::auth};
 use axum::{routing::get, serve, Router};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;

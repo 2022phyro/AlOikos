@@ -1,4 +1,4 @@
-use crate::authentication::encryption::{encrypt_string, decrypt_string};
+use crate::auth::encryption::{encrypt_string, decrypt_string};
 
 #[test]
 fn test_encrypt_decrypt_roundtrip() {

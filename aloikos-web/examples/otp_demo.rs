@@ -1,4 +1,4 @@
-use aloikos_web::authentication::otp::{Otp, OtpAction, OtpType};
+use aloikos_web::auth::otp::{Otp, OtpAction, OtpType};
 
 fn main() {
     println!("🔐 OTP Service Test Demo");

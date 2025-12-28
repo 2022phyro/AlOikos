@@ -1,5 +1,5 @@
 use chrono::Utc;
-use crate::authentication::jwt::{JwtAccessToken, JwtRefreshToken, Token, Blacklist};
+use crate::auth::jwt::{JwtAccessToken, JwtRefreshToken, Token, Blacklist};
 
 #[tokio::test]
 async fn test_token_creation() {

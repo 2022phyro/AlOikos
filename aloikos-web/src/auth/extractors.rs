@@ -1,4 +1,4 @@
-use crate::auth::models::prelude::UserModel;
+use crate::users::models::prelude::UserModel;
 use crate::utils::errors::ApiError;
 use axum::extract::FromRequestParts;
 use axum::http::{request::Parts, StatusCode};

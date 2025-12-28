@@ -1,4 +1,4 @@
-use aloikos_web::authentication::encryption::{encrypt_string, decrypt_string};
+use aloikos_web::auth::encryption::{encrypt_string, decrypt_string};
 
 fn main() {
     println!("🔐 Encryption/Decryption Demo");

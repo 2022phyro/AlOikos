@@ -1,7 +1,7 @@
-use super::super::models::prelude::{User, UserActiveModel, UserModel};
-use crate::auth::dto::{UserCreateDto, UserUpdateDto};
-use crate::auth::models::user::UserStatus;
-use crate::authentication::password::hash_password;
+use crate::users::models::prelude::{User, UserActiveModel, UserModel};
+use crate::users::dto::{UserCreateDto, UserUpdateDto};
+use crate::users::models::user::UserStatus;
+use crate::auth::password::hash_password;
 use crate::db::db;
 use crate::new_model;
 use chrono::Utc;

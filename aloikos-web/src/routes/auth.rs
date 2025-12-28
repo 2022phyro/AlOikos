@@ -1,4 +1,4 @@
-use crate::authentication::middleware::auth_middleware;
+use crate::auth::middleware::auth_middleware;
 use crate::users::handlers::auth::{
     change_password_view, login_view, logout_view, me_view, otp_request_view, otp_verify_view,
     refresh_token_view, signup_view, verify_account_view,
